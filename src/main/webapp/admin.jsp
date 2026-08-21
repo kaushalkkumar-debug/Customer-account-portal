@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin</title></head>
+<body>
+<h1>Admin Panel</h1>
+<p>Customer account administration appears here.</p>
+</body>
+</html>
