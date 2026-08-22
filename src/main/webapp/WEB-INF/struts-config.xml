@@ -19,4 +19,14 @@
             <forward name="adminHome" path="/admin.jsp"/>
         </action>
     </action-mappings>
+
+    <!-- Required for <html:errors/> on login.jsp to resolve message keys
+         like error.login.invalid — without this, ActionServlet never
+         plugs in a MessageResources, and any validation/login failure
+         throws JspException("Cannot find message resources under key
+         org.apache.struts.action.MESSAGE") instead of rendering the
+         error page. Found by actually submitting a wrong password
+         against the running app, not by the unit tests (which exercise
+         the EJB layer directly and never render this JSP). -->
+    <message-resources parameter="ApplicationResources"/>
 </struts-config>
