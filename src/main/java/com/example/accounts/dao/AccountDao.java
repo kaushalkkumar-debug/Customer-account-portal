@@ -8,6 +8,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 public final class AccountDao {
@@ -50,6 +52,19 @@ public final class AccountDao {
                 return rs.next() ? Optional.of(mapRow(rs)) : Optional.empty();
             }
         }
+    }
+
+    /** For the admin account-management screen — every account, oldest first. */
+    public List<CustomerAccount> findAll() throws SQLException {
+        String sql = "SELECT id, username, password_hash, password_salt, role, active FROM accounts ORDER BY id";
+        List<CustomerAccount> results = new ArrayList<>();
+        try (PreparedStatement stmt = connection.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                results.add(mapRow(rs));
+            }
+        }
+        return results;
     }
 
     public void setActive(int accountId, boolean active) throws SQLException {

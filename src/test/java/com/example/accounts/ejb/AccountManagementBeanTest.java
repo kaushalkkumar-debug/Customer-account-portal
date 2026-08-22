@@ -4,12 +4,14 @@ import com.example.accounts.dao.AccountDao;
 import com.example.accounts.db.DataSourceConfig;
 import com.example.accounts.db.SchemaInitializer;
 import com.example.accounts.domain.CustomerAccount;
+import com.example.accounts.domain.CustomerProfile;
 import com.example.accounts.domain.Role;
 import com.example.accounts.security.PasswordHasher;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -110,5 +112,54 @@ class AccountManagementBeanTest {
 
         assertTrue(bean.hasRole(admin, Role.ADMIN));
         assertFalse(bean.hasRole(admin, Role.CUSTOMER));
+    }
+
+    @Test
+    void getProfileReturnsWhatWasRegistered() throws SQLException {
+        AccountManagementLocal bean = new AccountManagementBean();
+        String username = uniqueUsername();
+        int accountId = bean.registerCustomer(username, "password", "Jamie Test", "jamie@example.com");
+
+        CustomerProfile profile = bean.getProfile(accountId).orElseThrow();
+
+        assertEquals("Jamie Test", profile.getFullName());
+        assertEquals("jamie@example.com", profile.getEmail());
+    }
+
+    @Test
+    void updateProfileChangesPhoneAndAddress() throws SQLException {
+        AccountManagementLocal bean = new AccountManagementBean();
+        String username = uniqueUsername();
+        int accountId = bean.registerCustomer(username, "password", "Jamie Test", "jamie@example.com");
+
+        bean.updateProfile(accountId, "07700 900123", "1 Test Street");
+
+        CustomerProfile profile = bean.getProfile(accountId).orElseThrow();
+        assertEquals("07700 900123", profile.getPhone());
+        assertEquals("1 Test Street", profile.getAddress());
+    }
+
+    @Test
+    void findAllAccountsIncludesEveryRegisteredAccount() throws SQLException {
+        AccountManagementLocal bean = new AccountManagementBean();
+        String username = uniqueUsername();
+        int accountId = bean.registerCustomer(username, "password", "Jamie Test", "jamie@example.com");
+
+        List<CustomerAccount> accounts = bean.findAllAccounts();
+
+        assertTrue(accounts.stream().anyMatch(a -> a.getId() == accountId && a.getUsername().equals(username)));
+    }
+
+    @Test
+    void setAccountActiveCanReactivateADeactivatedAccount() throws SQLException {
+        AccountManagementLocal bean = new AccountManagementBean();
+        String username = uniqueUsername();
+        int accountId = bean.registerCustomer(username, "password", "Jamie Test", "jamie@example.com");
+        bean.deactivateAccount(accountId);
+        assertTrue(bean.authenticate(username, "password").isEmpty());
+
+        bean.setAccountActive(accountId, true);
+
+        assertTrue(bean.authenticate(username, "password").isPresent());
     }
 }

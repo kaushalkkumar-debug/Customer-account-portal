@@ -15,8 +15,52 @@
                 scope="request"
                 validate="true"
                 input="/login.jsp">
-            <forward name="customerHome" path="/dashboard.jsp"/>
-            <forward name="adminHome" path="/admin.jsp"/>
+            <!-- Forward to the data-loading actions, not straight to the
+                 JSPs — dashboard.jsp/admin.jsp need real profile/balance/
+                 transaction/account data, not just a static page. -->
+            <forward name="customerHome" path="/dashboard.do" redirect="true"/>
+            <forward name="adminHome" path="/admin.do" redirect="true"/>
+        </action>
+
+        <action path="/dashboard"
+                type="com.example.accounts.struts.DashboardAction"
+                scope="request">
+            <forward name="success" path="/dashboard.jsp"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/dashboard/recordTransaction"
+                type="com.example.accounts.struts.RecordTransactionAction"
+                scope="request">
+            <forward name="success" path="/dashboard.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/dashboard/updateProfile"
+                type="com.example.accounts.struts.UpdateProfileAction"
+                scope="request">
+            <forward name="success" path="/dashboard.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/admin"
+                type="com.example.accounts.struts.AdminAction"
+                scope="request">
+            <forward name="success" path="/admin.jsp"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/admin/toggleActive"
+                type="com.example.accounts.struts.ToggleActiveAction"
+                scope="request">
+            <forward name="success" path="/admin.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/logout"
+                type="com.example.accounts.struts.LogoutAction"
+                scope="request">
+            <forward name="success" path="/login.jsp"/>
         </action>
     </action-mappings>
 

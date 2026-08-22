@@ -22,6 +22,25 @@ persistence via plain JDBC.
 or `customerHome` based on the account's role — the same request-goes-through-
 every-layer shape as the original J2EE intranet app this is modelled on.
 
+## Pages
+
+- **`/login`** — role-based login (Struts `LoginForm`/`LoginAction`)
+- **`/dashboard`** *(customer)* — real profile, running balance, full
+  transaction history, an "update contact details" form, and a "record a
+  transaction" form that posts through `TransactionServiceBean` and reloads
+  with the new balance
+- **`/admin`** *(admin)* — every customer account with a one-click
+  deactivate/reactivate toggle per row, backed by
+  `AccountManagementBean.setAccountActive()`
+- **`/logout`** — invalidates the session
+
+Every one of these is wired end to end and was exercised live against a
+running Jetty instance with seeded accounts — not just unit-tested. The
+dashboard's transaction form was used to record a real debit and the
+balance/history updated correctly; the admin panel's deactivate button
+was used to lock an account out (confirmed the login then actually
+failed), then reactivate it.
+
 ## Domain
 
 - **`CustomerAccount`** — username, password hash + salt, role
@@ -76,29 +95,31 @@ plumbing this project is actually about.
 mvn test
 ```
 
-Real output from this repo — 16 tests, all passing:
+Real output from this repo — 20 tests, all passing:
 
 ```
 Running com.example.accounts.ejb.AccountManagementBeanTest
-Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.422 s
+Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.469 s
 
 Running com.example.accounts.ejb.TransactionServiceBeanTest
-Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.062 s
+Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.106 s
 
 Running com.example.accounts.security.PasswordHasherTest
 Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.006 s
 
-Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 20, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
 ```
 
 `AccountManagementBeanTest` covers registration, duplicate-username
-rejection, authentication success/failure, role checks, and deactivation.
-`TransactionServiceBeanTest` covers history ordering (most recent first),
-balance-as-sum-of-transactions, a zero balance with no transactions, and
-that history is correctly scoped to its own account. `PasswordHasherTest`
-covers hash/verify round-trips, wrong-password rejection, and that two
-accounts with the same password get different hashes (different salts).
+rejection, authentication success/failure, role checks, deactivation,
+profile read/update, listing every account, and reactivating a
+deactivated account. `TransactionServiceBeanTest` covers history ordering
+(most recent first), balance-as-sum-of-transactions, a zero balance with
+no transactions, and that history is correctly scoped to its own account.
+`PasswordHasherTest` covers hash/verify round-trips, wrong-password
+rejection, and that two accounts with the same password get different
+hashes (different salts).
 
 ## A real bug this caught
 
@@ -116,8 +137,9 @@ switching to those resolved and compiled cleanly against Java 17.
 - A live EJB container in the test suite (see "About the EJB layer" above)
 - Container-managed transactions/security (currently each bean method
   manages its own connection)
-- Rendered JSP views beyond the three included (`login.jsp`, `dashboard.jsp`,
-  `admin.jsp`) — no CSS/styling
+- No CSS/styling — plain HTML tables and forms, functionality over polish
+- Self-service registration (accounts are seeded directly; there's no
+  public sign-up form)
 - A production-grade password hash (bcrypt/scrypt/Argon2) in place of
   salted SHA-256
 

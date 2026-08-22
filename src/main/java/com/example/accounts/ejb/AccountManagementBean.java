@@ -5,12 +5,14 @@ import com.example.accounts.dao.ProfileDao;
 import com.example.accounts.db.DataSourceConfig;
 import com.example.accounts.db.SchemaInitializer;
 import com.example.accounts.domain.CustomerAccount;
+import com.example.accounts.domain.CustomerProfile;
 import com.example.accounts.domain.Role;
 import com.example.accounts.security.PasswordHasher;
 
 import javax.ejb.Stateless;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -71,9 +73,38 @@ public class AccountManagementBean implements AccountManagementLocal {
 
     @Override
     public void deactivateAccount(int accountId) throws SQLException {
+        setAccountActive(accountId, false);
+    }
+
+    @Override
+    public Optional<CustomerProfile> getProfile(int accountId) throws SQLException {
         try (Connection conn = DataSourceConfig.getConnection()) {
             SchemaInitializer.ensureSchema(conn);
-            new AccountDao(conn).setActive(accountId, false);
+            return new ProfileDao(conn).findByAccountId(accountId);
+        }
+    }
+
+    @Override
+    public void updateProfile(int accountId, String phone, String address) throws SQLException {
+        try (Connection conn = DataSourceConfig.getConnection()) {
+            SchemaInitializer.ensureSchema(conn);
+            new ProfileDao(conn).updateContactDetails(accountId, phone, address);
+        }
+    }
+
+    @Override
+    public List<CustomerAccount> findAllAccounts() throws SQLException {
+        try (Connection conn = DataSourceConfig.getConnection()) {
+            SchemaInitializer.ensureSchema(conn);
+            return new AccountDao(conn).findAll();
+        }
+    }
+
+    @Override
+    public void setAccountActive(int accountId, boolean active) throws SQLException {
+        try (Connection conn = DataSourceConfig.getConnection()) {
+            SchemaInitializer.ensureSchema(conn);
+            new AccountDao(conn).setActive(accountId, active);
         }
     }
 }
