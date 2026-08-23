@@ -6,7 +6,139 @@
 A J2EE web application for managing customer accounts, profiles, and
 transaction history, with role-based secure login. Presentation layer in
 **Struts 1.x** (JSP/JSTL), business layer as **EJB 3.x session beans**,
-persistence via plain JDBC.
+persistence via plain JDBC — three layers, each with exactly one job,
+each swappable without touching the other two.
+
+## What it actually does
+
+Not just a login form — a working account-servicing app:
+
+- **Registration, authentication, and role-gating** — `CUSTOMER` vs.
+  `ADMIN`, with per-account salted-hash credentials.
+- **A customer dashboard** — live profile, a running balance that's
+  *derived* from transaction history rather than stored (see "Why the
+  balance isn't a column" below), the full transaction ledger, and two
+  working forms (record a transaction, update contact details) that
+  round-trip through the EJB layer and reload with the new state.
+- **An admin console** — every account, with a one-click
+  deactivate/reactivate toggle that actually locks the account out of
+  login, not just a cosmetic flag.
+
+## Class diagram
+
+```mermaid
+classDiagram
+    class LoginAction { +execute() ActionForward }
+    class DashboardAction { +execute() ActionForward }
+    class AdminAction { +execute() ActionForward }
+    class RecordTransactionAction { +execute() ActionForward }
+    class UpdateProfileAction { +execute() ActionForward }
+    class ToggleActiveAction { +execute() ActionForward }
+    class LogoutAction { +execute() ActionForward }
+
+    class AccountManagementLocal {
+        <<interface>>
+        +registerCustomer(username, password, fullName, email) int
+        +authenticate(username, password) Optional~CustomerAccount~
+        +hasRole(account, required) boolean
+        +getProfile(accountId) Optional~CustomerProfile~
+        +updateProfile(accountId, phone, address)
+        +findAllAccounts() List~CustomerAccount~
+        +setAccountActive(accountId, active)
+    }
+    class AccountManagementBean {
+        <<@Stateless>>
+    }
+    class TransactionServiceLocal {
+        <<interface>>
+        +recordTransaction(accountId, amount, description) int
+        +getTransactionHistory(accountId) List~Transaction~
+        +getCurrentBalance(accountId) BigDecimal
+    }
+    class TransactionServiceBean {
+        <<@Stateless>>
+    }
+
+    class AccountDao
+    class ProfileDao
+    class TransactionDao
+
+    class CustomerAccount {
+        -String username
+        -String passwordHash
+        -String passwordSalt
+        -Role role
+        -boolean active
+    }
+    class CustomerProfile {
+        -String fullName
+        -String email
+        -String phone
+        -String address
+    }
+    class Transaction {
+        -BigDecimal amount
+        -String description
+        -LocalDateTime occurredAt
+    }
+    class Role {
+        <<enumeration>>
+        CUSTOMER
+        ADMIN
+    }
+
+    LoginAction --> AccountManagementLocal : authenticate
+    DashboardAction --> AccountManagementLocal : getProfile
+    DashboardAction --> TransactionServiceLocal : history + balance
+    AdminAction --> AccountManagementLocal : findAllAccounts
+    RecordTransactionAction --> TransactionServiceLocal : recordTransaction
+    UpdateProfileAction --> AccountManagementLocal : updateProfile
+    ToggleActiveAction --> AccountManagementLocal : setAccountActive
+
+    AccountManagementBean ..|> AccountManagementLocal
+    TransactionServiceBean ..|> TransactionServiceLocal
+    AccountManagementBean --> AccountDao
+    AccountManagementBean --> ProfileDao
+    TransactionServiceBean --> TransactionDao
+
+    AccountDao ..> CustomerAccount : returns
+    ProfileDao ..> CustomerProfile : returns
+    TransactionDao ..> Transaction : returns
+    CustomerAccount --> Role
+```
+
+**Why it's shaped this way — three named patterns, not just folders:**
+
+1. **MVC via Struts's front controller.** Every `*Action` class is a
+   thin controller: pull request params, call exactly one EJB method,
+   pick a forward. None of them touch JDBC, SQL, or `HttpSession`
+   internals directly — that's the point of the layer underneath.
+2. **Session façade (the EJB layer).** `AccountManagementLocal` and
+   `TransactionServiceLocal` are the *only* things a Struts action is
+   allowed to depend on. Seven actions, two interfaces — the façade
+   hides three DAOs and all transaction/connection handling behind a
+   handful of business-shaped methods (`setAccountActive`, not
+   `UPDATE accounts SET active = ?`). Swap Struts for Spring MVC
+   tomorrow and this layer, and everything below it, is untouched.
+3. **DAO pattern, one per aggregate.** `AccountDao`/`ProfileDao`/
+   `TransactionDao` each own exactly one table's SQL. Nothing above
+   the EJB layer knows a database exists at all.
+
+## Why the balance isn't a column
+
+`CustomerAccount` has no `balance` field. `TransactionServiceBean.
+getCurrentBalance()` computes it as `SUM(amount)` over that account's
+transaction rows, every time it's asked. That's a deliberate design
+choice, not a missing optimization: a stored balance is a second
+source of truth that a bug (or a crash mid-update) can desynchronize
+from the ledger that's supposed to justify it. Deriving it makes that
+class of bug structurally impossible — there's nothing to fall out of
+sync, because there's only one number, computed from the same rows a
+human could add up by hand to audit it. The trade-off is cost: this
+is `O(n)` per balance check rather than `O(1)`, which is the right
+call for an account-history table, not for a high-frequency trading
+ledger — exactly the kind of trade-off worth being able to name out
+loud, not just make silently.
 
 ## Layers
 
