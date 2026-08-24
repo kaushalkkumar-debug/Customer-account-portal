@@ -9,12 +9,14 @@
   <version>1.0.0-SNAPSHOT</version>
   <packaging>war</packaging>
 
-  <name>Customer Account Management Portal</name>
+  <name>Vendor Management System</name>
   <description>
-    A J2EE web application for managing customer accounts, profiles, and
-    transaction history, with role-based secure login. Presentation layer
-    in Struts (JSP/JSTL), business layer as EJB session beans, persistence
-    to Oracle via JDBC.
+    A J2EE vendor management system (2014-2015-era enterprise workflow):
+    vendor onboarding with an approval gate, a per-vendor catalog of
+    software/hardware/IoT items, procurement-raised purchase orders, and
+    an accounts-payable ledger, with role-based secure login. Presentation
+    layer in Struts (JSP/JSTL), business layer as EJB session beans,
+    persistence to Oracle via JDBC.
   </description>
 
   <properties>

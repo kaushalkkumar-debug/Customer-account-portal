@@ -6,6 +6,7 @@
 <struts-config>
     <form-beans>
         <form-bean name="loginForm" type="com.example.accounts.struts.LoginForm"/>
+        <form-bean name="registerForm" type="com.example.accounts.struts.RegisterForm"/>
     </form-beans>
 
     <action-mappings>
@@ -16,10 +17,19 @@
                 validate="true"
                 input="/login.jsp">
             <!-- Forward to the data-loading actions, not straight to the
-                 JSPs — dashboard.jsp/admin.jsp need real profile/balance/
-                 transaction/account data, not just a static page. -->
-            <forward name="customerHome" path="/dashboard.do" redirect="true"/>
+                 JSPs — dashboard.jsp/admin.jsp need real profile/ledger/
+                 catalog/vendor data, not just a static page. -->
+            <forward name="vendorHome" path="/dashboard.do" redirect="true"/>
             <forward name="adminHome" path="/admin.do" redirect="true"/>
+        </action>
+
+        <action path="/register"
+                type="com.example.accounts.struts.RegisterAction"
+                name="registerForm"
+                scope="request"
+                validate="true"
+                input="/register.jsp">
+            <forward name="success" path="/login.jsp" redirect="true"/>
         </action>
 
         <action path="/dashboard"
@@ -29,8 +39,8 @@
             <forward name="login" path="/login.jsp"/>
         </action>
 
-        <action path="/dashboard/recordTransaction"
-                type="com.example.accounts.struts.RecordTransactionAction"
+        <action path="/dashboard/submitInvoice"
+                type="com.example.accounts.struts.SubmitInvoiceAction"
                 scope="request">
             <forward name="success" path="/dashboard.do" redirect="true"/>
             <forward name="login" path="/login.jsp"/>
@@ -38,6 +48,13 @@
 
         <action path="/dashboard/updateProfile"
                 type="com.example.accounts.struts.UpdateProfileAction"
+                scope="request">
+            <forward name="success" path="/dashboard.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/dashboard/addItem"
+                type="com.example.accounts.struts.AddCatalogItemAction"
                 scope="request">
             <forward name="success" path="/dashboard.do" redirect="true"/>
             <forward name="login" path="/login.jsp"/>
@@ -57,6 +74,34 @@
             <forward name="login" path="/login.jsp"/>
         </action>
 
+        <action path="/admin/setApprovalStatus"
+                type="com.example.accounts.struts.SetApprovalStatusAction"
+                scope="request">
+            <forward name="success" path="/admin.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/admin/recordPayment"
+                type="com.example.accounts.struts.RecordPaymentAction"
+                scope="request">
+            <forward name="success" path="/admin.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/catalog"
+                type="com.example.accounts.struts.CatalogAction"
+                scope="request">
+            <forward name="success" path="/catalog.jsp"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
+        <action path="/catalog/purchase"
+                type="com.example.accounts.struts.PurchaseItemAction"
+                scope="request">
+            <forward name="success" path="/catalog.do" redirect="true"/>
+            <forward name="login" path="/login.jsp"/>
+        </action>
+
         <action path="/logout"
                 type="com.example.accounts.struts.LogoutAction"
                 scope="request">
@@ -64,13 +109,13 @@
         </action>
     </action-mappings>
 
-    <!-- Required for <html:errors/> on login.jsp to resolve message keys
-         like error.login.invalid — without this, ActionServlet never
-         plugs in a MessageResources, and any validation/login failure
-         throws JspException("Cannot find message resources under key
-         org.apache.struts.action.MESSAGE") instead of rendering the
-         error page. Found by actually submitting a wrong password
-         against the running app, not by the unit tests (which exercise
-         the EJB layer directly and never render this JSP). -->
+    <!-- Required for <html:errors/> on login.jsp/register.jsp to resolve
+         message keys like error.login.invalid — without this, ActionServlet
+         never plugs in a MessageResources, and any validation/login
+         failure throws JspException("Cannot find message resources under
+         key org.apache.struts.action.MESSAGE") instead of rendering the
+         error page. Found by actually submitting a wrong password against
+         the running app, not by the unit tests (which exercise the EJB
+         layer directly and never render this JSP). -->
     <message-resources parameter="ApplicationResources"/>
 </struts-config>

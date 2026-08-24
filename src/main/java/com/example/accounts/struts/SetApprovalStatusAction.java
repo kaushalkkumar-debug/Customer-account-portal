@@ -1,5 +1,6 @@
 package com.example.accounts.struts;
 
+import com.example.accounts.domain.ApprovalStatus;
 import com.example.accounts.domain.Role;
 import com.example.accounts.ejb.VendorManagementBean;
 import com.example.accounts.ejb.VendorManagementLocal;
@@ -14,15 +15,8 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.sql.SQLException;
 
-/**
- * POST /admin/toggleActive — accountId, active=true|false. Admin-only.
- * Deliberately independent of approvalStatus: an already-APPROVED vendor
- * can be deactivated (contract ended, non-performance) without un-
- * approving them — reactivating later doesn't require re-running the
- * approval workflow. See SetApprovalStatusAction for the separate
- * pending/approve/reject decision.
- */
-public class ToggleActiveAction extends Action {
+/** POST /admin/setApprovalStatus — accountId, status=APPROVED|REJECTED. Admin-only. The approve/reject decision on a pending vendor application. */
+public class SetApprovalStatusAction extends Action {
     private final VendorManagementLocal vendorManagement = new VendorManagementBean();
 
     @Override
@@ -35,14 +29,13 @@ public class ToggleActiveAction extends Action {
 
         try {
             int accountId = Integer.parseInt(request.getParameter("accountId"));
-            boolean active = Boolean.parseBoolean(request.getParameter("active"));
-            vendorManagement.setAccountActive(accountId, active);
-            session.setAttribute("flashMessage",
-                    "Vendor " + accountId + (active ? " reactivated." : " deactivated."));
-        } catch (NumberFormatException e) {
-            session.setAttribute("flashMessage", "Invalid vendor id.");
+            ApprovalStatus status = ApprovalStatus.valueOf(request.getParameter("status"));
+            vendorManagement.setApprovalStatus(accountId, status);
+            session.setAttribute("flashMessage", "Vendor " + accountId + " " + status.name().toLowerCase() + ".");
+        } catch (IllegalArgumentException | NullPointerException e) {
+            session.setAttribute("flashMessage", "Invalid vendor id or status.");
         } catch (SQLException e) {
-            throw new RuntimeException("failed to update vendor status", e);
+            throw new RuntimeException("failed to update approval status", e);
         }
 
         return mapping.findForward("success");

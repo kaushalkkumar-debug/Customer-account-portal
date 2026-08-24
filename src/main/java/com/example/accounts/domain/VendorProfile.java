@@ -1,15 +1,16 @@
 package com.example.accounts.domain;
 
-public final class CustomerProfile {
+/** The vendor's contact person — the human procurement actually emails/calls, as distinct from the company itself (VendorAccount.companyName). */
+public final class VendorProfile {
     private final int accountId;
-    private final String fullName;
+    private final String contactName;
     private final String email;
     private final String phone;
     private final String address;
 
-    public CustomerProfile(int accountId, String fullName, String email, String phone, String address) {
+    public VendorProfile(int accountId, String contactName, String email, String phone, String address) {
         this.accountId = accountId;
-        this.fullName = fullName;
+        this.contactName = contactName;
         this.email = email;
         this.phone = phone;
         this.address = address;
@@ -19,8 +20,8 @@ public final class CustomerProfile {
         return accountId;
     }
 
-    public String getFullName() {
-        return fullName;
+    public String getContactName() {
+        return contactName;
     }
 
     public String getEmail() {

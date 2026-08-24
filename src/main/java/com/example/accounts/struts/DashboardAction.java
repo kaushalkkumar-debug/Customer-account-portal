@@ -1,11 +1,15 @@
 package com.example.accounts.struts;
 
-import com.example.accounts.domain.CustomerProfile;
-import com.example.accounts.domain.Transaction;
-import com.example.accounts.ejb.AccountManagementBean;
-import com.example.accounts.ejb.AccountManagementLocal;
-import com.example.accounts.ejb.TransactionServiceBean;
-import com.example.accounts.ejb.TransactionServiceLocal;
+import com.example.accounts.domain.LedgerEntry;
+import com.example.accounts.domain.VendorAccount;
+import com.example.accounts.domain.VendorItem;
+import com.example.accounts.domain.VendorProfile;
+import com.example.accounts.ejb.CatalogServiceBean;
+import com.example.accounts.ejb.CatalogServiceLocal;
+import com.example.accounts.ejb.VendorManagementBean;
+import com.example.accounts.ejb.VendorManagementLocal;
+import com.example.accounts.ejb.LedgerServiceBean;
+import com.example.accounts.ejb.LedgerServiceLocal;
 
 import org.apache.struts.action.Action;
 import org.apache.struts.action.ActionForm;
@@ -21,15 +25,17 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * The customer dashboard: profile, current balance, and transaction
- * history — loaded fresh on every visit rather than baked into the JSP,
- * so the record-transaction and update-profile forms actually reflect
+ * The vendor dashboard: business identity + approval status, current
+ * amount owed, ledger history, and (once APPROVED) their catalog and an
+ * invoice-submission form. Loaded fresh on every visit rather than baked
+ * into the JSP, so the catalog/invoice/profile forms actually reflect
  * what just changed. Also carries a one-shot flash message/error from
  * those forms across their post-redirect-get hop.
  */
 public class DashboardAction extends Action {
-    private final AccountManagementLocal accountManagement = new AccountManagementBean();
-    private final TransactionServiceLocal transactionService = new TransactionServiceBean();
+    private final VendorManagementLocal vendorManagement = new VendorManagementBean();
+    private final LedgerServiceLocal ledgerService = new LedgerServiceBean();
+    private final CatalogServiceLocal catalogService = new CatalogServiceBean();
 
     @Override
     public ActionForward execute(ActionMapping mapping, ActionForm form, HttpServletRequest request, HttpServletResponse response) {
@@ -40,13 +46,17 @@ public class DashboardAction extends Action {
         }
 
         try {
-            Optional<CustomerProfile> profile = accountManagement.getProfile(accountId);
-            BigDecimal balance = transactionService.getCurrentBalance(accountId);
-            List<Transaction> history = transactionService.getTransactionHistory(accountId);
+            Optional<VendorAccount> account = vendorManagement.getAccount(accountId);
+            Optional<VendorProfile> profile = vendorManagement.getProfile(accountId);
+            BigDecimal amountOwed = ledgerService.getAmountOwed(accountId);
+            List<LedgerEntry> history = ledgerService.getLedgerHistory(accountId);
+            List<VendorItem> catalog = catalogService.getVendorCatalog(accountId);
 
+            request.setAttribute("account", account.orElse(null));
             request.setAttribute("profile", profile.orElse(null));
-            request.setAttribute("balance", balance);
-            request.setAttribute("transactions", history);
+            request.setAttribute("amountOwed", amountOwed);
+            request.setAttribute("ledgerEntries", history);
+            request.setAttribute("catalog", catalog);
             request.setAttribute("flashMessage", session.getAttribute("flashMessage"));
             request.setAttribute("flashError", session.getAttribute("flashError"));
             session.removeAttribute("flashMessage");
